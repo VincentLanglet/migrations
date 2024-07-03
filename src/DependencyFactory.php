@@ -80,6 +80,8 @@ class DependencyFactory
     /** @var callable[] */
     private array $factories = [];
 
+    private bool $strictOnFrozenMigration = false;
+
     public static function fromConnection(
         ConfigurationLoader $configurationLoader,
         ConnectionLoader $connectionLoader,
@@ -102,6 +104,12 @@ class DependencyFactory
         $dependencyFactory->emLoader            = $emLoader;
 
         return $dependencyFactory;
+    }
+
+    /** @internal */
+    public function setStrictOnFrozenMigration(bool $strict): void
+    {
+        $this->strictOnFrozenMigration = $strict;
     }
 
     private function __construct(LoggerInterface|null $logger)
@@ -331,6 +339,7 @@ class DependencyFactory
             $this->getLogger(),
             $this->getParameterFormatter(),
             $this->getStopwatch(),
+            $this->strictOnFrozenMigration,
         ));
     }
 

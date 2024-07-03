@@ -46,6 +46,7 @@ final class DbalExecutor implements Executor
         private readonly LoggerInterface $logger,
         private readonly ParameterFormatter $parameterFormatter,
         private readonly Stopwatch $stopwatch,
+        private readonly bool $strictAboutFrozenMigration = false,
     ) {
     }
 
@@ -145,7 +146,10 @@ final class DbalExecutor implements Executor
             $this->addSql(new Query($sql));
         }
 
-        $migration->freeze();
+        $migrationSqls = \count($migration->getSql());
+        if ($this->strictAboutFrozenMigration) {
+            $migration->freeze();
+        }
 
         if (count($this->sql) !== 0) {
             if (! $configuration->isDryRun()) {
@@ -164,6 +168,13 @@ final class DbalExecutor implements Executor
         $result->setState(State::POST);
 
         $migration->{'post' . ucfirst($direction)}($toSchema);
+
+        if (!$this->strictAboutFrozenMigration && $migrationSqls !== \count($migration->getSql())) {
+            $this->logger->warning('Migration {version} has SQL statement(s) in {method} method which was not executed.', [
+                'version' => (string) $plan->getVersion(),
+                'method' => 'post' . ucfirst($direction),
+            ]);
+        }
 
         $stopwatchEvent->stop();
         $periods    = $stopwatchEvent->getPeriods();
